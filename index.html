@@ -1,0 +1,2777 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Un premier jeu Phaser 3.2</title>
+    <script src="//cdn.jsdelivr.net/npm/phaser@3.20.0/dist/phaser.js"></script>
+    <style type="text/css">
+      body {
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="text/javascript">
+      window.onload = function() {
+        var config = {
+          type: Phaser.AUTO,
+          // les dimensions de l'écran
+          width: 1400, // 1200
+          height: 700, // 800
+          physics: {
+            default: "arcade",
+            arcade: {
+              gravity: { y: 0 }, // NO GRAVITY
+              debug: false
+            }
+          },
+          scene: [menu, Moption, niveau1, niveau2, game_over, winend] // on définit les diffèrents niveaux du jeu
+        };
+        game = new Phaser.Game(config); //nouvel objet décrivant un jeu
+        game.scene.start("menu"); //on commence par le menu
+      }; // ; c'est la fin de window onload à faire qu'une fois
+
+      var player; // variable du joueur
+
+      var TerreVie = 3; // nb de vie du pnjTerre
+      var EauVie = 3; // nb de vie du pnjEau
+      var FeuVie = 3; // nb de vie du pnjFeu
+      var VampireVie = 3; // nb de vie du pnjVampire
+      var NatureVie = 3; // nb de vie du pnjNature
+
+      // Déclaration des pnj
+      var pnjTerre; // creation du pnjTerre
+      var pnjEau; // creation du pnjEau
+      var pnjNature; // creation du pnjNature
+      var pnjFeu; // creation du pnjFeu
+      var pnjVampire; // creation du pnjVampire
+      var pnjWizard; // creation du pnjWizard qui parlera
+      var pnjGirlEau; // creation du pnjGirlEau qui parlera
+      var pnjBoss; // creation du pnjBoss qui apparait quand les pnjElements sont tués
+
+      var pnjOs;
+      var pnjBoss2;
+      var pnjNoir;
+      var pnjGobelin;
+      var pnjGobelinVert;
+      var pnjMinotaure;
+      var pnjGenie;
+      var pnjNinja;
+
+      var OsVie = 3; // nb de vie du pnjTerre
+      var NoirVie = 3; // nb de vie du pnjEau
+      var GobelinVie = 3; // nb de vie du pnjFeu
+      var GobelinVertVie = 3; // nb de vie du pnjVampire
+      var MinotaureVie = 3; // nb de vie du pnjNature
+      var vieBoss2 = 15;
+
+      var cursors; // variable pour le clavier
+      // Munitions
+      var groupeBullets; // groupe de boules de feu du player
+      var groupeBulletspnj; // groupe de boules de feu
+      var direction = "down"; // direction player
+      var directionpnj; // direction pnj
+      var BoutonFeu; // touche 'a' pour tirer
+      var BoutonMenu;
+      var BoutonPause;
+      var bpause = false;
+      var pnj; // groupe des pnj
+      var vie = 3; // vie player
+      var scoreText; // affichage de la vie du player en haut à gauche
+      var wizardText; // monologue du wizard
+      var GirlEauText; // monologue de la fille
+      var scoreNinjaText;
+      var heart; // premier coeur de vie
+      var heart2; // deuxieme coeur de vie
+      var heart3; // troisième coeur de vie
+      var gameover = false; // booleen du game over pour voir l'etat de la partie
+      var kill = 0; // nombre de pnj tués
+      var cakes; // groupe des coeurs qui peuvent etre ramassés
+      var cake1; // coeur 1 qui peut être ramassé
+      var cake2; // coeur 2 qui peut être ramassé
+      var cake3; // coeur 3 qui peut être ramassé
+      var coins; // groupe des pièces
+      var i;
+      var argent = 0; // nombre de pièces ramassées
+      var bourse; // texte du nombre de pièces rammassées
+      var j;
+      var vieBoss = 10; // vie du pnj
+      var door1; //variable porte 1 qui fait le lien entre le niveau 1 et le niveau 2
+      var count;
+      //variable bouton
+      var boustart; //bouton start
+      var boption; //bouton option
+      var son_on; //bouton active le son
+      var son_off; //bouton arrête le son
+      var bover; //bouton quitter
+
+      //variables des musiques et sons des niveaux
+      var smenu; //musique du menu
+      var smain; //musique des deux niveaux
+      var sover; //musique du game over
+      var sfire; //bruitage de tir de boules de feu par le personnage
+      var svictory; //musique de victoire
+      var soption; //musique des options
+
+      // fonction qui s'active quand on passe du niveau 1 au niveau 2
+      function checkOverlap(spriteA, spriteB) {
+        if (vieBoss == 0) {
+          var boundsA = spriteA.getBounds();
+          var boundsB = spriteB.getBounds();
+          var result = Phaser.Geom.Rectangle.Intersection(boundsA, boundsB);
+          return result.width != 0 || result.height != 0;
+        }
+      }
+
+      //***************************************************************************
+      class niveau1 extends Phaser.Scene {
+        constructor() {
+          super({
+            key: "niveau1" //le mot clé du niveau comment on l'appelle dans les fonctions
+          });
+        }
+
+        preload() {
+         
+          this.load.audio("smain", "Sound/main theme.ogg"); // initialisation de la musique principale
+          this.load.audio("sfire", "Sound/boule de feu.ogg"); // initialisation de son des boules de feu du chevalier
+          this.load.image("door1", "Assets1/door1.png"); // porte de passage
+          this.load.image("bullet", "Assets1/Bullet1.png"); // initialisation de l'image de la boule de feu du player
+          this.load.image("bullet2", "Assets1/Bullet2.png"); // boule de feu du pnj
+          this.load.image("heart", "Assets1/Heart.png"); // initialisation de l'image de coeur de la barre de vie
+          this.load.image("cake", "Assets1/Heart.png"); // initialisation de l'image de coeur a ramasser
+
+          this.load.spritesheet("coinsimage", "Assets1/coin2.png", {
+            frameWidth: 25, //48
+            frameHeight: 31 //48
+          }); // initilisation de la pièce
+
+          this.load.spritesheet("dude", "Assets1/Chevalier.png", {
+            frameWidth: 48, //48
+            frameHeight: 48 //48
+          }); // initialisation du sprite du player
+          this.load.spritesheet("Terre", "Assets1/Element.png", {
+            frameWidth: 48, //48
+            frameHeight: 48 //48
+          }); // initialisation du sprite du pnjTerre
+          this.load.spritesheet("Eau", "Assets1/Element.png", {
+            frameWidth: 48, //48
+            frameHeight: 48 //48
+          }); // initialisation du sprite du pnjEau
+          this.load.spritesheet("Feu", "Assets1/Element.png", {
+            frameWidth: 46, //48
+            frameHeight: 46 //48
+          }); // initialisation du sprite du pnjFeu
+          this.load.spritesheet("Ve", "Assets1/Element.png", {
+            frameWidth: 48, //48
+            frameHeight: 48 //48
+          }); // initialisation du sprite du pnjNature
+          this.load.spritesheet("Vampire", "Assets1/Vampire.png", {
+            frameWidth: 48, //48
+            frameHeight: 49 //48
+          }); // initialisation du sprite du pnjVampire
+          this.load.spritesheet("Wizard", "Assets1/Wizard.png", {
+            frameWidth: 48, //48
+            frameHeight: 48 //48
+          }); // initialisation du sprite du pnjWizard qui ne bougera pas
+          this.load.spritesheet("GirlEau", "Assets1/GirlEau.png", {
+            frameWidth: 48, //48
+            frameHeight: 48 //48
+          }); // initialisation du sprite du pnjGirlEau qui ne bougera pas
+
+          this.load.spritesheet("Boss", "Assets1/Boss.png", {
+            frameWidth: 48, //48
+            frameHeight: 48 //48
+          }); // initialisation du sprite du pnjBoss de fin
+
+          // chargement tuiles de jeu
+          this.load.image("Phaser_tuilesdejeu", "Assets1/Sol.png");
+          this.load.image("Phaser_tuilesdejeu2", "Assets1/2Ecole.png");
+          this.load.image("Phaser_tuilesdejeu3", "Assets1/3Ecole.png");
+          this.load.image("Phaser_tuilesdejeu4", "Assets1/6Ecole.png");
+          this.load.image("Phaser_tuilesdejeu5", "Assets1/Mur.png");
+          this.load.image("Phaser_tuilesdejeu6", "Assets1/Livres.png");
+          this.load.image("Phaser_tuilesdejeu7", "Assets1/Vege.png");
+          this.load.image("Phaser_tuilesdejeu8", "Assets1/Simetierre.png");
+
+          // chargement de la carte
+          var result = this.load.tilemapTiledJSON("map", "Essai61.json");
+          console.log(result + "voilaaaaa"); //vérification du bon fonctionnement du jeu
+        }
+        //***************************************************************************
+        create() {
+          smain = this.sound.add("smain", {  // on définie la musique en boucle et on réduit son volume
+            loop: true,
+            volume: 0.1
+          });
+          smain.play({ seek: 3 }); // On commence la musique à partir de 3 secondes au début afin de ne pas avoir de vide sonore
+          this.cameras.main.setBackgroundColor("#000");
+
+          groupeBullets = this.physics.add.group(); // on crée un groupe physique pour les
+          // boules de feu du player
+          groupeBulletspnj = this.physics.add.group(); // on crée un groupe physique pour les
+          // boules de feu du player
+          cakes = this.physics.add.group(); // on crée un groupe physique pour les
+          // coeurs du player qui peuvent être ramasser
+
+          BoutonFeu = this.input.keyboard.addKey("A"); // on initliase le bouton pour tirer des boules de feu
+          cursors = this.input.keyboard.createCursorKeys(); // clavier
+
+          var map = this.make.tilemap({ key: "map" }); // creation de la variable map
+
+          // creation des tilesets
+          var tileset = map.addTilesetImage("Sol", "Phaser_tuilesdejeu");
+          var tileset2 = map.addTilesetImage("2Ecole", "Phaser_tuilesdejeu2");
+          var tileset3 = map.addTilesetImage("3Ecole", "Phaser_tuilesdejeu3");
+          var tileset4 = map.addTilesetImage("6Ecole", "Phaser_tuilesdejeu4");
+          var tileset5 = map.addTilesetImage("Mur", "Phaser_tuilesdejeu5");
+          var tileset6 = map.addTilesetImage("Livres", "Phaser_tuilesdejeu6");
+          var tileset7 = map.addTilesetImage("Vege", "Phaser_tuilesdejeu7");
+          var tileset8 = map.addTilesetImage(
+            "Simetierre",
+            "Phaser_tuilesdejeu8"
+          );
+
+          //creation dynamic layer pour Sol
+          var sol = map.createDynamicLayer(
+            "Sol",
+            [
+              tileset,
+              tileset2,
+              tileset3,
+              tileset4,
+              tileset5,
+              tileset6,
+              tileset7,
+              tileset8
+            ],
+            0, //x
+            16 * 32 // forçage en y
+          );
+
+          //creation dynamic layer pour Obstacle
+          var obstacle = map.createDynamicLayer(
+            "Obstacle",
+            [
+              tileset,
+              tileset2,
+              tileset3,
+              tileset4,
+              tileset5,
+              tileset6,
+              tileset7,
+              tileset8
+            ],
+            0, //x
+            16 * 32
+          );
+
+          //creation dynamic layer pour DessusSol
+          var dessussol = map.createDynamicLayer(
+            "DessusSol",
+            [
+              tileset,
+              tileset2,
+              tileset3,
+              tileset4,
+              tileset5,
+              tileset6,
+              tileset7,
+              tileset8
+            ],
+            0, // forçage du décalage de gauche
+            16 * 32
+          );
+
+          //creation dynamic layer pour DessusObstacle
+          var dessusobstacle = map.createDynamicLayer(
+            "DessusObstacle",
+            [
+              tileset,
+              tileset2,
+              tileset3,
+              tileset4,
+              tileset5,
+              tileset6,
+              tileset7,
+              tileset8
+            ],
+            0,
+            16 * 32
+          );
+
+          pnj = this.physics.add.group({ immovable: true }); // les pnjs peuvent pas bouger de leurs trajectoires
+
+          //On crée les pnjs sur la map
+          pnjTerre = pnj.create(800, 650, "Terre");
+          pnjEau = pnj.create(150, 800, "Eau");
+          pnjFeu = pnj.create(1000, 1400, "Feu");
+          pnjNature = pnj.create(1150, 1100, "Ve");
+          pnjVampire = pnj.create(1400, 790, "Vampire");
+          pnjGirlEau = this.physics.add.sprite(70, 600, "GirlEau");
+          pnjWizard = this.physics.add.sprite(700, 900, "Wizard"); //ok
+
+          //On crée le player sur la map
+          player = this.physics.add.sprite(400, 900, "dude"); // position du Dude ok
+          player.invincible = false; // définition d'un paramètre d'invincibilité
+          player.tirerbool = true; // défintition d'un paramètre pour ne pas tirer en spammant la touche 'a'
+
+          // on place les coeurs de la barre de vie
+          heart = this.add.image(290, 105, "heart");
+          heart2 = this.add.image(320, 105, "heart");
+          heart3 = this.add.image(350, 105, "heart");
+          // les coeurs doivent se déplacer avec le personnage
+          heart.setScrollFactor(0);
+          heart2.setScrollFactor(0);
+          heart3.setScrollFactor(0);
+
+          // affichage du texte de la barre de vie
+          scoreText = this.add.text(145, 90, "", {
+            fontSize: "25px",
+            fill: "#001"
+          });
+          scoreText.setText(" Health:");
+          scoreText.setScrollFactor(0);
+          scoreText.setDepth(30); // le texte est au dessus de tout
+
+          wizardText = this.add.text(pnjWizard.x - 100, pnjWizard.y - 55, "", {
+            fontSize: "20px",
+            fill: "#001"
+          }); // definition de la zone de texte du wizard
+          wizardText.setText("Terrasse les monstres !"); // on avertit le joueur
+
+          // On affiche le texte qui présente les pièces
+          bourse = this.add.text(145, 130, "", {
+            fontSize: "25px",
+            fill: "#001"
+          });
+          bourse.setText(" Phi: " + argent);
+          bourse.setScrollFactor(0);
+          bourse.setDepth(30);
+
+          // On pose sur la map les coeurs
+          cake1 = cakes.create(570, 1200, "cake");
+          cake2 = cakes.create(870, 1000, "cake");
+          cake3 = cakes.create(100, 600, "cake");
+
+          // on crée un groupe de pièces physique
+          coins = this.physics.add.group();
+
+          // On pose des pièces sur la map
+          i = 50;
+          for (j = 0; j < 10; j++) {
+            coins.create(i, 900 + 30 * j, "coinsimage");
+          }
+          j = 600;
+          for (i = 0; i < 10; i++) {
+            coins.create(700 + 30 * i, j, "coinsimage");
+          }
+
+          // La partie en dessous gère les collisions entre les différents éléments
+          // du décor mais aussi les pnjs, le player, les boules de feu du player
+          // et celles des pnjs
+
+          // Les boules de feu tuent les pnj
+          this.physics.add.overlap(groupeBullets, pnj, this.hit, null, this);
+
+          // Les obstacles tuent les boules de feu du player
+          this.physics.add.collider(
+            groupeBullets,
+            obstacle,
+            this.hitobstacle, // la boule de feu pnj disparait contre obstacle
+            null,
+            this
+          );
+
+          // les dessusobstacles tuent les boules de feu du player
+          this.physics.add.collider(
+            groupeBullets,
+            dessusobstacle,
+            this.hitdessusobstacle, // la boule de feu player disparait contre dessusobstacle
+            null,
+            this
+          ); //ok
+          this.physics.add.collider(
+            groupeBullets,
+            dessussol,
+            this.hitdessussol, // la boule de feu player disparait contre dessussol
+            null,
+            this
+          );
+          // On fait pareil pour les boules de feu du pnj sur les obstacles
+          this.physics.add.collider(
+            groupeBulletspnj,
+            obstacle,
+            this.hitobstacle, // la boule de feu pnj disparait contre obstacle
+            null,
+            this
+          );
+          this.physics.add.collider(
+            groupeBulletspnj,
+            dessusobstacle,
+            this.hitdessusobstacle, // la boule de feu pnj disparait contre dessusobstacle
+            null,
+            this
+          );
+          this.physics.add.collider(
+            groupeBulletspnj,
+            dessussol,
+            this.hitdessussol, // la boule de feu pnj disparait contre dessussol
+            null,
+            this
+          ); //ok
+
+          // Les boules de feu des pnj tuent le joueur
+          this.physics.add.overlap(
+            groupeBulletspnj,
+            player,
+            this.mort, // le player perd une vie car il a touché un tir ennemi
+            null,
+            this
+          );
+
+          // on reprend une vie
+          this.physics.add.overlap(player, cakes, this.manger, null, this);
+
+          this.physics.add.overlap(
+            player,
+            coins,
+            this.ramassertresor, // on ramasse des pièces
+            null,
+            this
+          );
+
+          // on demarre une tirade
+          this.physics.add.overlap(
+            pnjGirlEau,
+            player,
+            this.parlerGirlEau, // la fille parle
+            null,
+            this
+          );
+
+          // le joueur a touché un pnj : il va perdre une vie
+          this.physics.add.overlap(pnj, player, this.mortparpnj, null, this);
+
+          obstacle.setCollisionBetween(0, 10000, true); // on se cogne aux obsatcles
+          dessusobstacle.setCollisionBetween(0, 10000, true); // pareil
+
+          // a garder ou non ?
+          this.physics.add.collider(player, obstacle);
+          this.physics.add.collider(player, dessusobstacle);
+          this.physics.add.collider(player, pnj);
+          this.physics.add.collider(pnj, obstacle);
+          this.physics.add.collider(pnj, dessusobstacle);
+
+          //**************************************************************
+          // DEBUGUE DES OBSTACLES
+          // Cette fonction sert à voir les images obstacles
+          //const debugGraphics = this.add.graphics().setAlpha(0.75);
+
+          /*obstacle.renderDebug(debugGraphics, {
+                      tileColor: new Phaser.Display.Color(0, 250, 0, 255), // couleur des tuiles snas collision
+                      collidingTileColor: new Phaser.Display.Color(243, 134, 0, 255), // couleur des tuiles en conlision
+                      faceColor: new Phaser.Display.Color(40, 39, 37, 255) // Color of colliding face edges
+                    });*/
+          //****************************************************************
+          // ANIMATION DU PLAYER
+          // animation lorsque le personnage va a gauche
+          this.anims.create({
+            key: "left",
+            frames: this.anims.generateFrameNumbers("dude", {
+              frames: [3, 4, 5]
+            }),
+            frameRate: 10, //nb image par seconde
+            repeat: -1
+          });
+          // animation lorsque le player va a droite
+          this.anims.create({
+            key: "right",
+            frames: this.anims.generateFrameNumbers("dude", {
+              frames: [6, 7, 8]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+          // animation lorsque le player descend
+          this.anims.create({
+            key: "down",
+            frames: this.anims.generateFrameNumbers("dude", {
+              frames: [0, 1, 2]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+          // animation lorsque le player va en haut
+          this.anims.create({
+            key: "up",
+            frames: this.anims.generateFrameNumbers("dude", {
+              frames: [9, 10, 11]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+
+          // Ci dessous on fait pareil pour les animations des pnjs:
+          //Eau,Terre,Feu,Nature,Vampire et Boss
+
+          // ANIMATION DE TERRE qui va de gauche à droite
+          this.anims.create({
+            key: "Terreleft",
+            frames: this.anims.generateFrameNumbers("Terre", {
+              frames: [12, 13, 14]
+            }),
+            frameRate: 10,
+            repeat: -1
+          }); //ok
+          this.anims.create({
+            key: "Terreright",
+            frames: this.anims.generateFrameNumbers("Terre", {
+              frames: [24, 25, 26]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+
+          // ANIMATION DE EAU qui va de haut en bas
+          this.anims.create({
+            key: "EauUp",
+            frames: this.anims.generateFrameNumbers("Eau", {
+              frames: [45, 46, 47]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+          this.anims.create({
+            key: "EauBas",
+            frames: this.anims.generateFrameNumbers("Eau", {
+              frames: [9, 10, 11]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+
+          // ANIMATION DE FEU qui va de gauche a droite
+          this.anims.create({
+            key: "Feuleft",
+            frames: this.anims.generateFrameNumbers("Terre", {
+              frames: [15, 16, 17]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+          this.anims.create({
+            key: "Feuright",
+            frames: this.anims.generateFrameNumbers("Terre", {
+              frames: [27, 28, 27]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+
+          // ANIMATION DE NATURE qui va de haut en bas
+          this.anims.create({
+            key: "NatureUp",
+            frames: this.anims.generateFrameNumbers("Ve", {
+              frames: [42, 43, 44]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+          this.anims.create({
+            key: "NatureBas",
+            frames: this.anims.generateFrameNumbers("Ve", {
+              frames: [6, 7, 8]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+
+          // ANIMATION DE VAMPIRE qui va de gauche à droite
+          this.anims.create({
+            key: "Vampleft",
+            frames: this.anims.generateFrameNumbers("Vampire", {
+              frames: [3, 4, 5]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+          this.anims.create({
+            key: "Vampright",
+            frames: this.anims.generateFrameNumbers("Vampire", {
+              frames: [6, 7, 8]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+
+          // On définit 4 nouvelles animations pour "bloquer" le player
+          // dans la direction choisie lorsqu'il n'avance pas
+          this.anims.create({
+            key: "bougepasleft",
+            frames: this.anims.generateFrameNumbers("dude", {
+              frames: [3]
+            }),
+            frameRate: 10, //nb image par seconde
+            repeat: -1
+          });
+          this.anims.create({
+            key: "bougepasright",
+            frames: this.anims.generateFrameNumbers("dude", {
+              frames: [6]
+            }),
+            frameRate: 10, //nb image par seconde
+            repeat: -1
+          });
+          this.anims.create({
+            key: "bougepasup",
+            frames: this.anims.generateFrameNumbers("dude", {
+              frames: [9]
+            }),
+            frameRate: 10, //nb image par seconde
+            repeat: -1
+          });
+          this.anims.create({
+            key: "bougepasdown",
+            frames: this.anims.generateFrameNumbers("dude", {
+              frames: [0]
+            }),
+            frameRate: 10, //nb image par seconde
+            repeat: -1
+          });
+          this.anims.create({
+            key: "anime",
+            frames: this.anims.generateFrameNumbers("Wizard", {
+              frames: [3]
+            }),
+            frameRate: 10, //nb image par seconde
+            repeat: -1
+          });
+
+          //ANIMATION PNJGIRLEAU
+          this.anims.create({
+            key: "animeGE",
+            frames: this.anims.generateFrameNumbers("GirlEau", {
+              frames: [2]
+            }),
+            frameRate: 10, //nb image par seconde
+            repeat: -1
+          }); //elle ne bouge pas
+
+          //ANIMATION DES PIECES
+          this.anims.create({
+            key: "tournecoin",
+            frames: this.anims.generateFrameNumbers("coinsimage", {
+              frames: [3, 4, 5, 6, 5, 4, 3] // pour qu'elles tournent
+            }),
+            frameRate: 10, //nb image par seconde
+            repeat: -1
+          });
+
+          //ANIMATION BOSS
+          this.anims.create({
+            key: "BossBas",
+            frames: this.anims.generateFrameNumbers("Boss", {
+              frames: [0, 1, 2]
+            }),
+            frameRate: 10, //nb image par seconde
+            repeat: -1
+          });
+          this.anims.create({
+            key: "BossUp",
+            frames: this.anims.generateFrameNumbers("Boss", {
+              frames: [9, 10, 11]
+            }),
+            frameRate: 10, //nb image par seconde
+            repeat: -1
+          });
+          this.anims.create({
+            key: "Bossright",
+            frames: this.anims.generateFrameNumbers("Boss", {
+              frames: [6, 7, 8]
+            }),
+            frameRate: 10, //nb image par seconde
+            repeat: -1
+          });
+          this.anims.create({
+            key: "Bossleft",
+            frames: this.anims.generateFrameNumbers("Boss", {
+              frames: [3, 4, 5]
+            }),
+            frameRate: 10, //nb image par seconde
+            repeat: -1
+          });
+
+          //****************************************************************
+          // redimentionnement du monde avec les dimensions calculées via tiled
+          this.physics.world.setBounds(0, 526, 2244, 1249);
+          this.cameras.main.setBounds(0, 526, 2244, 1249);
+
+          // ancrage de la caméra sur le joueur
+          this.cameras.main.startFollow(player);
+          // On ajoute un zoom pour se focus sur le player
+          this.cameras.main.zoom = 1.25;
+
+          // On active l'animation de tous les pnjs en appelant des fonctions
+          // en dehors de preload, create et update
+          this.allerGauche(); // Animation Terre
+          this.allerBas(); // Animation Eau
+          this.allerDroiteF(); // Animation Feu
+          this.allerDroiteVp(); // Animation Vampire
+          this.allerBasV(); // Animation Nature
+          this.animation(); // Animation fixe du Wizard
+          this.animationGE(); // Animation fixe du pnjGirlEau
+
+          // Toutes les pièces créées tournent
+          coins.children.iterate(function(pieceDuGroupe) {
+            pieceDuGroupe.anims.play("tournecoin", true);
+          });
+
+          console.log("niveau1"); // on est dans le niveau1
+        } // fin du create
+        //**********************************************************
+        update() {
+          if (kill == 5) {
+            // si on a tué tous les pnjs
+            kill = 0; // on change le paramètre pour ne rentrer qu'une fois dans
+            smain.play({ rate: 2 }); // on multiplie la vitesse de la musique par 2
+            // cette boucle du update
+            pnjBoss = pnj.create(1500, 1300, "Boss"); // on affiche le pnjBoss
+            wizardText.setText("Un Boss est entré dans la dernière salle !"); // on avertit le joueur
+            // avec le wizard
+            this.allerBasBoss(); // Animation du Boss
+          }
+
+          // on veut eviter les déplacements en diagonale du player
+          player.setVelocityX(0);
+          player.setVelocityY(0);
+
+          if (cursors.left.isDown) {
+            direction = "left"; // on va a gauche
+            player.body.setVelocityX(-150);
+            player.anims.play(direction, true);
+          } else if (cursors.right.isDown) {
+            direction = "right"; // on va a droite
+            player.body.setVelocityX(150);
+            player.anims.play(direction, true);
+          } else if (cursors.up.isDown) {
+            direction = "up"; // on va en haut
+            player.body.setVelocityY(-150);
+            player.anims.play(direction, true);
+          } else if (cursors.down.isDown) {
+            direction = "down"; // on va en bas
+            player.body.setVelocityY(150);
+            player.anims.play(direction, true);
+          } else {
+            player.setVelocityX(0);
+            player.setVelocityY(0);
+            this.bougepas(direction); // le player reste dans la dernière direction, figé
+          }
+
+          //On vérifie si le joueur n'a pas tenté de tirer avec 'a'
+          if (Phaser.Input.Keyboard.JustDown(BoutonFeu)) {
+            // le joueur tente de tirer
+            if (player.tirerbool == true) {
+              // au début il peut
+              this.tirer(player, direction); // il tire
+              sfire = this.sound.add("sfire", { // on règle le volume du bruitage
+                volume: 0.1
+              });
+              sfire.play(); // on lance le bruitage à chaque tirs du joueur
+              player.tirerbool = false; // il ne peut plus (impossible de spam la touche
+              // pour lancer plus de boules de feu)
+              var timedEventbo1 = this.time.addEvent({
+                delay: 1000, // permet un tir toutes les secondes
+                callback: function() {
+                  player.tirerbool = true;
+                },
+                callbackScope: this,
+                loop: false
+              });
+              //Le joueur peut de nouveau tirer
+            }
+          }
+          //On vérifie si le joueur veut passer au niveau suivant
+          // en faisant 'space'
+          if (Phaser.Input.Keyboard.JustDown(cursors.space)) {
+            if (checkOverlap(player, door1)) { //s'il est prêt de la porte
+              smain.play({ rate: 1 }); // on repasse à une lecture à vitesse normale
+              this.scene.start("niveau2"); // on rentre dans le niveau 2
+            }
+            //autre portes à mettre
+          }
+        } // fin du update du niveau1
+        //****************************************************
+        //****************************************************
+        // Fonction pour tirer pour le pnj
+        tirerpnj(pnj, directionpnj) {
+          if (gameover == false) {
+            // Tant que le joueur n'a pas perdu
+            // les pnj peuvent tirer
+            var coefDirxpnj = 0;
+            var coefDirypnj = 0;
+            if (directionpnj == "left") {
+              // si le pnj va a gauche
+              coefDirxpnj = -1;
+              coefDirypnj = 0;
+            }
+            if (directionpnj == "right") {
+              // si le pnj va a droite
+              coefDirxpnj = 1;
+              coefDirypnj = 0;
+            }
+            if (directionpnj == "up") {
+              // si le pnj va en haut
+              coefDirxpnj = 0;
+              coefDirypnj = -1;
+            }
+            if (directionpnj == "down") {
+              // si le pnj va en bas
+              coefDirxpnj = 0;
+              coefDirypnj = 1;
+            }
+            // on crée la balle a coté du joueur
+            var bulletpnj = groupeBulletspnj.create(pnj.x, pnj.y, "bullet2");
+            // parametres physiques de la boule de feu
+            bulletpnj.setCollideWorldBounds(true);
+            bulletpnj.body.allowGravity = false;
+            // vitesse en x et en y
+            bulletpnj.setVelocity(400 * coefDirxpnj, 400 * coefDirypnj);
+          }
+        }
+
+        //Cette partie concerne les fonctions qui servent à animer les pnjs automatiquement
+        //fonction Animation Terre
+        // On explique ici pour l'exemple
+        allerGauche() {
+          if (pnjTerre.active == true) {
+            // si le pnjTerre n'est pas mort
+            pnjTerre.setVelocityX(-120);
+            pnjTerre.anims.play("Terreleft", true); // animation appelée
+            directionpnj = "left"; // on définit la direction de tir
+            this.tirerpnj(pnjTerre, directionpnj); // tire
+            var timedEventalldr = this.time.addEvent({
+              delay: 3000, // il va a gauche pendant 3 sec puis a droite
+              callback: this.allerDroite, // avec cet appel de fonction
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+        allerDroite() {
+          if (pnjTerre.active == true) {
+            pnjTerre.setVelocityX(120);
+            pnjTerre.anims.play("Terreright", true);
+            directionpnj = "right";
+            this.tirerpnj(pnjTerre, directionpnj); // tire
+            var timedEventallg = this.time.addEvent({
+              delay: 3000,
+              callback: this.allerGauche,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+        // fonction Animation Feu
+        allerGaucheF() {
+          if (pnjFeu.active == true) {
+            pnjFeu.setVelocityX(-120);
+            pnjFeu.anims.play("Feuleft", true);
+            directionpnj = "left";
+            this.tirerpnj(pnjFeu, directionpnj); // tire
+            var timedEventalldrF = this.time.addEvent({
+              delay: 5000,
+              callback: this.allerDroiteF,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+        allerDroiteF() {
+          if (pnjFeu.active == true) {
+            pnjFeu.setVelocityX(120);
+            pnjFeu.anims.play("Feuright", true);
+            directionpnj = "right";
+            this.tirerpnj(pnjFeu, directionpnj); // tire
+            var timedEventallgf = this.time.addEvent({
+              delay: 5000,
+              callback: this.allerGaucheF,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+        // Animation Eau
+        allerBas() {
+          if (pnjEau.active == true) {
+            pnjEau.setVelocityY(120); // soucis ici quand le
+            //pnjEau est tué
+            pnjEau.anims.play("EauBas", true);
+            directionpnj = "down";
+            this.tirerpnj(pnjEau, directionpnj); // tire
+            var timedEventallh = this.time.addEvent({
+              delay: 4000,
+              callback: this.allerHaut,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+        allerHaut() {
+          if (pnjEau.active == true) {
+            pnjEau.setVelocityY(-120);
+            pnjEau.anims.play("EauUp", true);
+            directionpnj = "up";
+            this.tirerpnj(pnjEau, directionpnj); // tire
+            var timedEventallb = this.time.addEvent({
+              delay: 4000,
+              callback: this.allerBas,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+        // Animation Nature
+        allerBasV() {
+          if (pnjNature.active == true) {
+            pnjNature.setVelocityY(120);
+            pnjNature.anims.play("NatureBas", true);
+            directionpnj = "down";
+            this.tirerpnj(pnjNature, directionpnj); // tire
+            var timedEventallhv = this.time.addEvent({
+              delay: 4000,
+              callback: this.allerHautV,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+        allerHautV() {
+          if (pnjNature.active == true) {
+            pnjNature.setVelocityY(-120);
+            pnjNature.anims.play("NatureUp", true);
+            directionpnj = "up";
+            this.tirerpnj(pnjNature, directionpnj); // tire
+            var timedEventallbv = this.time.addEvent({
+              delay: 4000,
+              callback: this.allerBasV,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+        // Animation Vampire
+        allerGaucheVp() {
+          if (pnjVampire.active == true) {
+            pnjVampire.setVelocityX(-120);
+            pnjVampire.anims.play("Vampleft", true);
+            directionpnj = "left";
+            this.tirerpnj(pnjVampire, directionpnj); // tire
+            var timedEventalldrvp = this.time.addEvent({
+              delay: 3000,
+              callback: this.allerDroiteVp,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+        allerDroiteVp() {
+          if (pnjVampire.active == true) {
+            pnjVampire.setVelocityX(120);
+            pnjVampire.anims.play("Vampright", true);
+            directionpnj = "right";
+            this.tirerpnj(pnjVampire, directionpnj); // tire
+            var timedEventallgvp = this.time.addEvent({
+              delay: 3000,
+              callback: this.allerGaucheVp,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+        // Animation Boss
+        allerBasBoss() {
+          if (pnjBoss.active == true) {
+            pnjBoss.setVelocityY(120);
+            pnjBoss.anims.play("BossBas", true);
+            // Le boss est plus dur il tire dans 4 directions différentes
+            directionpnj = "down";
+            this.tirerpnj(pnjBoss, directionpnj); // tire
+            directionpnj = "up";
+            this.tirerpnj(pnjBoss, directionpnj); // tire
+            directionpnj = "left";
+            this.tirerpnj(pnjBoss, directionpnj); // tire
+            directionpnj = "right";
+            this.tirerpnj(pnjBoss, directionpnj); // tire
+            var timedEventallboss1 = this.time.addEvent({
+              delay: 2000,
+              callback: this.allerDroiteBoss,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+        allerHautBoss() {
+          if (pnjBoss.active == true) {
+            pnjBoss.setVelocityY(-120);
+            pnjBoss.anims.play("BossUp", true);
+            directionpnj = "down";
+            this.tirerpnj(pnjBoss, directionpnj); // tire
+            directionpnj = "up";
+            this.tirerpnj(pnjBoss, directionpnj); // tire
+            directionpnj = "left";
+            this.tirerpnj(pnjBoss, directionpnj); // tire
+            directionpnj = "right";
+            this.tirerpnj(pnjBoss, directionpnj); // tire
+            var timedEventallboss2 = this.time.addEvent({
+              delay: 2000,
+              callback: this.allerGaucheBoss,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+        allerGaucheBoss() {
+          if (pnjBoss.active == true) {
+            pnjBoss.setVelocityX(-120);
+            pnjBoss.anims.play("Bossleft", true);
+            directionpnj = "down";
+            this.tirerpnj(pnjBoss, directionpnj); // tire
+            directionpnj = "up";
+            this.tirerpnj(pnjBoss, directionpnj); // tire
+            directionpnj = "left";
+            this.tirerpnj(pnjBoss, directionpnj); // tire
+            directionpnj = "right";
+            this.tirerpnj(pnjBoss, directionpnj); // tire
+            var timedEventallboss3 = this.time.addEvent({
+              delay: 2000,
+              callback: this.allerBasBoss,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+        allerDroiteBoss() {
+          if (pnjBoss.active == true) {
+            pnjBoss.setVelocityX(120);
+            pnjBoss.anims.play("Bossright", true);
+            directionpnj = "down";
+            this.tirerpnj(pnjBoss, directionpnj); // tire
+            directionpnj = "up";
+            this.tirerpnj(pnjBoss, directionpnj); // tire
+            directionpnj = "left";
+            this.tirerpnj(pnjBoss, directionpnj); // tire
+            directionpnj = "right";
+            this.tirerpnj(pnjBoss, directionpnj); // tire
+            var timedEventallboss4 = this.time.addEvent({
+              delay: 2000,
+              callback: this.allerHautBoss,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+
+        // On fixe les animations des deux pnjs non ennemis
+        animation() {
+          pnjWizard.anims.play("anime", true);
+        }
+        animationGE() {
+          pnjGirlEau.anims.play("animeGE", true);
+        }
+
+        // Fonction pour tirer pour le player
+        // C'est pareil que tirerpnj
+        tirer(player, direction) {
+          var coefDirx;
+          var coefDiry;
+          if (direction == "left") {
+            coefDirx = -1;
+            coefDiry = 0;
+          }
+          if (direction == "right") {
+            coefDirx = 1;
+            coefDiry = 0;
+          }
+          if (direction == "up") {
+            coefDirx = 0;
+            coefDiry = -1;
+          }
+          if (direction == "down") {
+            coefDirx = 0;
+            coefDiry = 1;
+          }
+          // on crée la balle a coté du joueur
+          var bullet = groupeBullets.create(
+            player.x * 1,
+            player.y * 1,
+            "bullet"
+          );
+          // parametres physiques de la balle.
+          bullet.setCollideWorldBounds(true);
+          bullet.body.allowGravity = false;
+          bullet.setVelocity(400 * coefDirx, 400 * coefDiry); // vitesse en x et en y
+        }
+
+        // Fonction pour eliminer les pnjs aux 3 vies chacun
+        // + le boss qui a 10 vies
+        hit(bullet, pnj) {
+          bullet.destroy(); //la balle est détruite de base
+          if (pnj == pnjTerre) {
+            TerreVie--; // le pnj perd une vie
+            pnjTerre.setTint(0xff0000); // se colore en rouge
+            var timedEventcle = this.time.addEvent({
+              delay: 2000,
+              callback: function() {
+                pnjTerre.clearTint(); // le pnj reprend sa couleur
+              },
+              callbackScope: this,
+              loop: false
+            });
+            // delai pour revenir sur sa couleur
+            if (TerreVie == 0) {
+              pnjTerre.destroy(); // le pnj est détruit
+              kill++;
+            }
+          } else if (pnj == pnjEau) {
+            EauVie--; // le pnj perd une vie
+            pnjEau.setTint(0xff0000); // se colore en rouge
+            var timedEventcleau = this.time.addEvent({
+              delay: 2000,
+              callback: function() {
+                pnjEau.clearTint(); // le pnj reprend sa couleur
+              },
+              callbackScope: this,
+              loop: false
+            });
+            // delai pour revenir sur sa couleur
+            if (EauVie == 0) {
+              pnjEau.destroy();
+              kill++;
+            }
+          } else if (pnj == pnjFeu) {
+            FeuVie--; // le pnj perd une vie
+            pnjFeu.setTint(0xff0000); // se colore en rouge
+            var timedEventclefeu = this.time.addEvent({
+              delay: 2000,
+              callback: function() {
+                pnjFeu.clearTint(); // le pnj reprend sa couleur
+              },
+              callbackScope: this,
+              loop: false
+            });
+            // delai pour revenir sur sa couleur
+            if (FeuVie == 0) {
+              pnjFeu.destroy(); // le pnj est détruit
+              kill++;
+            }
+          } else if (pnj == pnjNature) {
+            NatureVie--; // le pnj perd une vie
+            pnjNature.setTint(0xff0000); // se colore en rouge
+            var timedEventclenat = this.time.addEvent({
+              delay: 2000,
+              callback: function() {
+                pnjNature.clearTint(); // le pnj reprend sa couleur
+              },
+              callbackScope: this,
+              loop: false
+            });
+            // delai pour revenir sur sa couleur
+            if (NatureVie == 0) {
+              pnjNature.destroy(); // le pnj est détruit
+              kill++;
+            }
+          } else if (pnj == pnjVampire) {
+            VampireVie--; // le pnj perd une vie
+            pnjVampire.setTint(0xff0000); // se colore en rouge
+            var timedEventclevamp = this.time.addEvent({
+              delay: 2000,
+              callback: function() {
+                pnjVampire.clearTint(); // le pnj reprend sa couleur
+              },
+              callbackScope: this,
+              loop: false
+            });
+            // delai pour revenir sur sa couleur
+            if (VampireVie == 0) {
+              pnjVampire.destroy(); // le pnj est détruit
+              kill++;
+            }
+          } else if (pnj == pnjBoss) {
+            vieBoss--; // le pnj perd une vie
+            pnjBoss.setTint(0xff0000); // se colore en rouge
+            var timedEventclebos = this.time.addEvent({
+              delay: 2000,
+              callback: function() {
+                pnjBoss.clearTint(); // le pnj reprend sa couleur
+              },
+              callbackScope: this,
+              loop: false
+            });
+            if (vieBoss == 0) {
+              pnjBoss.destroy(); // le pnj est détruit
+              // Les pièces ne s'afiichent pas
+              for (i = 0; i < 5; i++) {
+                for (j = 0; j < 5; j++) {
+                  coins.create(1450 + 30 * i, 1225 + 30 * j, "coinsimage");
+                }
+              }
+              // la porte du niveau suivant apparait
+              door1 = this.add.sprite(1500, 1300, "door1"); // changez de place
+            }
+          }
+        }
+
+        // boule de feu qui rencontre un mur obstacle
+        hitobstacle(bullet, obstacle) {
+          bullet.destroy();
+        }
+
+        // boule de feu qui rencontre un mur dessusobstacle
+        hitdessusobstacle(bullet, dessusobstacle) {
+          bullet.destroy();
+        }
+
+        // boule de feu qui rencontre un mur dessusobstacle
+        hitdessussol(bullet, dessussol) {
+          bullet.destroy();
+        }
+
+        //Fonction quand le player prend des coups
+        mort(player, bulletpnj) {
+          player.setTint(0xff0000); //se colore en rouge
+          var timedEventpla = this.time.addEvent({
+            delay: 2000,
+            callback: function() {
+              player.clearTint(); // reprend sa couleur de base
+            },
+            callbackScope: this,
+            loop: false
+          });
+          vie--; // la vie décrémente
+          if (vie == 2) {
+            heart3.visible = false; // on enlève de l'affichage
+            // le coeur de droite
+          }
+          if (vie == 1) {
+            heart2.visible = false; // le coeur suivant
+          }
+          if (vie == 0) {
+            heart.visible = false; // plus de coeur
+            scoreText.setText(" GAME OVER ");
+            gameover = true; // le jeu se met en pause
+            game.scene.start("game_over"); //on a perdu, on ouvre la classe game_over            
+            this.physics.pause();
+          }
+          bulletpnj.destroy(); // bulletpnj se détruit
+        }
+
+        //Fonction quand le player prend des coups
+        // on fait pareil mais quand le player touche un pnj
+        mortparpnj(player, pnj) {
+          if (player.invincible == false) {
+            // s'il n'est pas invincible
+            vie--; // la vie décrémente
+            if (vie == 2) {
+              heart3.visible = false;
+            }
+            if (vie == 1) {
+              heart2.visible = false;
+            }
+            if (vie == 0) {
+              heart.visible = false;
+              scoreText.setText(" GAME OVER ");
+              gameover = true;
+              this.physics.pause();
+              game.scene.start("game_over");
+  //on rentre dans la classe game_over           
+            }
+            player.setTint(0xff0000); //
+            player.invincible = true;
+            var timedEventplapnj = this.time.addEvent({
+              delay: 2000,
+              callback: function() {
+                player.clearTint();
+                player.invincible = false;
+              },
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+
+        // Fonction animation player pour rester dans la direction
+        // concernenant le player
+        bougepas(direction) {
+          if (direction == "left") {
+            player.anims.play("bougepasleft", true);
+          }
+          if (direction == "right") {
+            player.anims.play("bougepasright", true);
+          }
+          if (direction == "up") {
+            player.anims.play("bougepasup", true);
+          }
+          if (direction == "down") {
+            player.anims.play("bougepasdown", true);
+          }
+        }
+
+        //Fonction qui permet de gagner de la vie
+        manger(player, cakes) {
+          if (vie < 3) {
+            // il peut manger un coeur s'il a moins de 3 vies
+            vie++; // la vie incrémente
+            cakes.destroy(); // le coeur est mangé miam
+          }
+          if (vie == 3) heart3.visible = true; //on fait reapparaitre un coeur
+          if (vie == 2) heart2.visible = true; // idem
+        }
+
+        // Fonction qui permet de ramasser les pièces
+        ramassertresor(player, coins) {
+          coins.disableBody(true, true); // on désactive la pièce ramassée
+          argent++; // on incrémente l'argent
+          bourse.setText(" Phi: " + argent); // on affiche
+        }
+
+        // fonction qui fait parler la fille si on s'approche d'elle
+        parlerGirlEau() {
+          GirlEauText = this.add.text(pnjGirlEau.x + 20, pnjGirlEau.y, "", {
+            fontSize: "20px",
+            fill: "#001"
+          });
+          // mettre un rectangle au dessus
+          GirlEauText.setText(" Au secours ! ");
+        }
+      
+      } // fin du niveau 1
+      //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+      //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+      // Cette partie est en phase de test et n'est pas opérationnelle
+      class niveau2 extends Phaser.Scene {
+        constructor() {
+          super({
+            key: "niveau2" //mot clé niveau2         
+          });
+        }
+        preload() {
+          this.load.audio("sfire", "Sound/boule de feu.ogg");
+          this.load.spritesheet("coinsimage", "Assets1/coin2.png", {
+            frameWidth: 25, //48
+            frameHeight: 31 //48
+          }); // initilisation de la pièce
+
+          this.load.image("bullet", "Assets1/Bullet1.png"); // initialisation de l'image de la boule de feu du player
+          this.load.image("bullet2", "Assets1/Bullet2.png"); // boule de feu du pnj
+          this.load.image("heart", "Assets1/Heart.png"); // initialisation de l'image de coeur de la barre de vie
+          this.load.image("cake", "Assets1/Heart.png"); // initialisation de l'image de coeur a ramasser
+
+          this.load.image("Phaser_tuilesdejeu2_1", "Assets1/Sol.png");
+          this.load.image("Phaser_tuilesdejeu2_2", "Assets1/2Ecole.png");
+          this.load.image("Phaser_tuilesdejeu2_3", "Assets1/4Ecole.png");
+          this.load.image("Phaser_tuilesdejeu2_4", "Assets1/6Ecole.png");
+          this.load.image("Phaser_tuilesdejeu2_5", "Assets1/Mur.png");
+          this.load.image("Phaser_tuilesdejeu2_7", "Assets1/Vege.png");
+          this.load.image("Phaser_tuilesdejeu2_9", "Assets1/Eau.png");
+          this.load.image("Phaser_tuilesdejeu2_10", "Assets1/Tour.png");
+
+          this.load.spritesheet("Minotaure", "Assets2/Minotaure.png", {
+            frameWidth: 48, //48
+            frameHeight: 48 //48
+          }); // initialisation du sprite
+
+          this.load.spritesheet("Gobelin", "Assets2/Gobelin.png", {
+            frameWidth: 48, //48
+            frameHeight: 48 //48
+          }); // initialisation du sprite
+
+          this.load.spritesheet("GobelinVert", "Assets2/GobelinVert.png", {
+            frameWidth: 48, //48
+            frameHeight: 48 //48
+          }); // initialisation du sprite
+
+          this.load.spritesheet("Os", "Assets2/Os.png", {
+            frameWidth: 48, //48
+            frameHeight: 48 //48
+          }); // initialisation du sprite
+
+          this.load.spritesheet("Boss2", "Assets2/Boss2.png", {
+            frameWidth: 48, //48
+            frameHeight: 48 //48
+          }); // initialisation du sprite
+
+          this.load.spritesheet("Ninja", "Assets2/pnjNinja.png", {
+            frameWidth: 48, //48
+            frameHeight: 48 //48
+          }); // initialisation du sprite
+
+          this.load.spritesheet("Noir", "Assets2/Noir.png", {
+            frameWidth: 48, //48
+            frameHeight: 48 //48
+          }); // initialisation du sprite
+
+          this.load.spritesheet("dude1", "Assets1/Chevalier.png", {
+            frameWidth: 48, //48
+            frameHeight: 48 //48
+          }); // initialisation du sprite du player
+
+          this.load.spritesheet("Genie", "Assets2/Jou.png", {
+            frameWidth: 48, //48
+            frameHeight: 48 //48
+          }); // initialisation du sprite du player
+
+          // chargement de la carte
+          var result = this.load.tilemapTiledJSON("map2", "Map3.json");
+        } //fin du preload
+
+        create() {
+          vie = 3;
+          groupeBullets = this.physics.add.group(); // on crée un groupe physique pour les
+          // boules de feu du player
+          groupeBulletspnj = this.physics.add.group(); // on crée un groupe physique pour les
+          // boules de feu du player
+          cakes = this.physics.add.group(); // on crée un groupe physique pour les
+          // coeurs du player qui peuvent être ramasser
+
+          BoutonFeu = this.input.keyboard.addKey("A"); // on initliase le bouton pour tirer des boules de feu
+          cursors = this.input.keyboard.createCursorKeys(); // clavier
+
+          this.cameras.main.setBackgroundColor("#000");
+
+          var map2 = this.make.tilemap({ key: "map2" });
+
+          var tileset = map2.addTilesetImage("Sol", "Phaser_tuilesdejeu2_1");
+          var tileset2 = map2.addTilesetImage(
+            "2Ecole",
+            "Phaser_tuilesdejeu2_2"
+          );
+          var tileset3 = map2.addTilesetImage(
+            "4Ecole",
+            "Phaser_tuilesdejeu2_3"
+          );
+          var tileset4 = map2.addTilesetImage(
+            "6Ecole",
+            "Phaser_tuilesdejeu2_4"
+          );
+          var tileset5 = map2.addTilesetImage("Mur", "Phaser_tuilesdejeu2_5");
+          var tileset7 = map2.addTilesetImage("Vege", "Phaser_tuilesdejeu2_7");
+          var tileset9 = map2.addTilesetImage("Eau", "Phaser_tuilesdejeu2_9");
+          var tileset10 = map2.addTilesetImage(
+            "Tour",
+            "Phaser_tuilesdejeu2_10"
+          );
+
+          //  To use multiple tilesets in a single layer, pass them in an array like this:
+          var sol = map2.createDynamicLayer(
+            "Sol",
+            [
+              tileset,
+              tileset2,
+              tileset3,
+              tileset4,
+              tileset5,
+              tileset7,
+              tileset9,
+              tileset10
+            ],
+            -0, //x
+            -170 //y
+          );
+
+          var dessussol = map2.createDynamicLayer(
+            "DessusSol",
+            [
+              tileset,
+              tileset2,
+              tileset3,
+              tileset4,
+              tileset5,
+              tileset7,
+              tileset9,
+              tileset10
+            ],
+            -0, // forçage du décalage de gauche
+            -170 // -20 par rapport a obstable.y
+          );
+
+          var obstacle = map2.createDynamicLayer(
+            "Obstacle",
+            [
+              tileset,
+              tileset2,
+              tileset3,
+              tileset4,
+              tileset5,
+              tileset7,
+              tileset9,
+              tileset10
+            ],
+            -0, //-54
+            -170
+          );
+
+          var dessusobstacle = map2.createDynamicLayer(
+            "DessusObstacle",
+            [
+              tileset,
+              tileset2,
+              tileset3,
+              tileset4,
+              tileset5,
+              tileset7,
+              tileset9,
+              tileset10
+            ],
+            -0,
+            -170
+          );
+
+          pnj = this.physics.add.group({ immovable: true }); // les pnjs peuvent pas bouger de leurs trajectoires
+
+          //On crée les pnjs sur la map
+          pnjOs = pnj.create(330, 150, "Os");
+          pnjGobelin = pnj.create(600, 650, "Gobelin");
+          pnjGobelinVert = pnj.create(900, 650, "GobelinVert");
+          pnjNoir = pnj.create(170, 1200, "Noir");
+          pnjMinotaure = pnj.create(1000, 150, "Minotaure");
+          pnjGenie = this.physics.add.sprite(30, 230, "Genie");
+          pnjNinja = this.physics.add.sprite(1350, 600, "Ninja");
+
+          player = this.physics.add.sprite(205, 235, "dude1"); // position du Dude ok
+          player.invincible = false; // définition d'un paramètre d'invincibilité
+          player.tirerbool = true; // défintition d'un paramètre pour ne pas tirer en spammant la touche 'a'
+
+          // on place les coeurs de la barre de vie
+          heart = this.add.image(290, 105, "heart");
+          heart2 = this.add.image(320, 105, "heart");
+          heart3 = this.add.image(350, 105, "heart");
+          // les coeurs doivent se déplacer avec le personnage
+          heart.setScrollFactor(0);
+          heart2.setScrollFactor(0);
+          heart3.setScrollFactor(0);
+
+          // affichage du texte de la barre de vie
+          scoreText = this.add.text(145, 90, "", {
+            fontSize: "25px",
+            fill: "#001"
+          });
+          scoreText.setText(" Health:");
+          scoreText.setScrollFactor(0);
+          scoreText.setDepth(30); // le texte est au dessus de tout
+
+          // On affiche le texte qui présente les pièces
+          bourse = this.add.text(145, 130, "", {
+            fontSize: "25px",
+            fill: "#001"
+          });
+          bourse.setText(" Phi: " + argent);
+          bourse.setScrollFactor(0);
+          bourse.setDepth(30);
+
+          // On pose sur la map les coeurs
+          cake1 = cakes.create(570, 1200, "cake");
+          cake2 = cakes.create(870, 1000, "cake");
+          cake3 = cakes.create(100, 600, "cake");
+
+          // on crée un groupe de pièces physique
+          coins = this.physics.add.group();
+
+          // On pose des pièces sur la map
+          i = 50;
+          for (j = 0; j < 10; j++) {
+            coins.create(i, 900 + 30 * j, "coinsimage");
+          }
+          i = 1000;
+          for (j = 0; j < 10; j++) {
+            coins.create(i, 150 + 30 * j, "coinsimage");
+          }
+          i = 1400;
+          for (j = 0; j < 10; j++) {
+            coins.create(i, 150 + 30 * j, "coinsimage");
+          }
+          j = 700;
+          for (i = 0; i < 10; i++) {
+            coins.create(500 + 30 * i, j, "coinsimage");
+          }
+          j = 225;
+          for (i = 0; i < 10; i++) {
+            coins.create(400 + 30 * i, j, "coinsimage");
+          }
+          j = 900;
+          for (i = 0; i < 10; i++) {
+            coins.create(650 + 30 * i, j, "coinsimage");
+          }
+
+          // La partie en dessous gère les collisions entre les différents éléments
+          // du décor mais aussi les pnjs, le player, les boules de feu du player
+          // et celles des pnjs
+
+          // Les boules de feu tuent les pnj
+          this.physics.add.overlap(groupeBullets, pnj, this.hit, null, this);
+
+          // Les obstacles tuent les boules de feu du player
+          this.physics.add.collider(
+            groupeBullets,
+            obstacle,
+            this.hitobstacle, // la boule de feu pnj disparait contre obstacle
+            null,
+            this
+          );
+
+          // les dessusobstacles tuent les boules de feu du player
+          this.physics.add.collider(
+            groupeBullets,
+            dessusobstacle,
+            this.hitdessusobstacle, // la boule de feu player disparait contre dessusobstacle
+            null,
+            this
+          ); //ok
+          this.physics.add.collider(
+            groupeBullets,
+            dessussol,
+            this.hitdessussol, // la boule de feu player disparait contre dessussol
+            null,
+            this
+          );
+          // On fait pareil pour les boules de feu du pnj sur les obstacles
+          this.physics.add.collider(
+            groupeBulletspnj,
+            obstacle,
+            this.hitobstacle, // la boule de feu pnj disparait contre obstacle
+            null,
+            this
+          );
+          this.physics.add.collider(
+            groupeBulletspnj,
+            dessusobstacle,
+            this.hitdessusobstacle, // la boule de feu pnj disparait contre dessusobstacle
+            null,
+            this
+          );
+          this.physics.add.collider(
+            groupeBulletspnj,
+            dessussol,
+            this.hitdessussol, // la boule de feu pnj disparait contre dessussol
+            null,
+            this
+          ); //ok
+
+          // Les boules de feu des pnj tuent le joueur
+          this.physics.add.overlap(
+            groupeBulletspnj,
+            player,
+            this.mort, // le player perd une vie car il a touché un tir ennemi
+            null,
+            this
+          );
+
+          // on reprend une vie
+          this.physics.add.overlap(player, cakes, this.manger, null, this);
+
+          this.physics.add.overlap(
+            player,
+            coins,
+            this.ramassertresor, // on ramasse des pièces
+            null,
+            this
+          );
+
+          // le joueur a touché un pnj : il va perdre une vie
+          this.physics.add.overlap(pnj, player, this.mortparpnj, null, this);
+
+          obstacle.setCollisionBetween(0, 10000, true); // on se cogne aux obsatcles
+          dessusobstacle.setCollisionBetween(0, 10000, true); // pareil
+
+          // a garder ou non ?
+          this.physics.add.collider(player, obstacle);
+          this.physics.add.collider(player, dessusobstacle);
+          this.physics.add.collider(player, pnj);
+          this.physics.add.collider(pnj, obstacle);
+          this.physics.add.collider(pnj, dessusobstacle);
+
+          // On définit 4 nouvelles animations pour "bloquer" le player
+          // dans la direction choisie lorsqu'il n'avance pas
+          this.anims.create({
+            key: "bougepasleft",
+            frames: this.anims.generateFrameNumbers("dude1", {
+              frames: [3]
+            }),
+            frameRate: 10, //nb image par seconde
+            repeat: -1
+          });
+          this.anims.create({
+            key: "bougepasright",
+            frames: this.anims.generateFrameNumbers("dude1", {
+              frames: [6]
+            }),
+            frameRate: 10, //nb image par seconde
+            repeat: -1
+          });
+          this.anims.create({
+            key: "bougepasup",
+            frames: this.anims.generateFrameNumbers("dude1", {
+              frames: [9]
+            }),
+            frameRate: 10, //nb image par seconde
+            repeat: -1
+          });
+          this.anims.create({
+            key: "bougepasdown",
+            frames: this.anims.generateFrameNumbers("dude1", {
+              frames: [0]
+            }),
+            frameRate: 10, //nb image par seconde
+            repeat: -1
+          });
+
+          // ANIMATION DU PLAYER
+          // animation lorsque le personnage va a gauche
+          this.anims.create({
+            key: "left",
+            frames: this.anims.generateFrameNumbers("dude1", {
+              frames: [3, 4, 5]
+            }),
+            frameRate: 10, //nb image par seconde
+            repeat: -1
+          });
+          // animation lorsque le player va a droite
+          this.anims.create({
+            key: "right",
+            frames: this.anims.generateFrameNumbers("dude1", {
+              frames: [6, 7, 8]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+          // animation lorsque le player descend
+          this.anims.create({
+            key: "down",
+            frames: this.anims.generateFrameNumbers("dude1", {
+              frames: [0, 1, 2]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+          // animation lorsque le player va en haut
+          this.anims.create({
+            key: "up",
+            frames: this.anims.generateFrameNumbers("dude1", {
+              frames: [9, 10, 11]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+
+          this.anims.create({
+            key: "Osbas",
+            frames: this.anims.generateFrameNumbers("Os", {
+              frames: [0, 1, 2]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+          this.anims.create({
+            key: "Osup",
+            frames: this.anims.generateFrameNumbers("Os", {
+              frames: [9, 10, 11]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+
+          this.anims.create({
+            key: "Minoup",
+            frames: this.anims.generateFrameNumbers("Minotaure", {
+              frames: [9, 10, 11]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+          this.anims.create({
+            key: "Minobas",
+            frames: this.anims.generateFrameNumbers("Minotaure", {
+              frames: [0, 1, 2]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+          this.anims.create({
+            key: "Minoleft",
+            frames: this.anims.generateFrameNumbers("Minotaure", {
+              frames: [3, 4, 5]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+          this.anims.create({
+            key: "Minoright",
+            frames: this.anims.generateFrameNumbers("Minotaure", {
+              frames: [6, 7, 8]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+
+          this.anims.create({
+            key: "GVright",
+            frames: this.anims.generateFrameNumbers("GobelinVert", {
+              frames: [6, 7, 8]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+          this.anims.create({
+            key: "GVleft",
+            frames: this.anims.generateFrameNumbers("GobelinVert", {
+              frames: [3, 4, 5]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+
+          this.anims.create({
+            key: "Gright",
+            frames: this.anims.generateFrameNumbers("Gobelin", {
+              frames: [6, 7, 8]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+          this.anims.create({
+            key: "Gleft",
+            frames: this.anims.generateFrameNumbers("Gobelin", {
+              frames: [3, 4, 5]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+
+          this.anims.create({
+            key: "Noirright",
+            frames: this.anims.generateFrameNumbers("Noir", {
+              frames: [6, 7, 8]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+          this.anims.create({
+            key: "Noirleft",
+            frames: this.anims.generateFrameNumbers("Noir", {
+              frames: [3, 4, 5]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+          this.anims.create({
+            key: "GeniePose",
+            frames: this.anims.generateFrameNumbers("Genie", {
+              frames: [6]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+          this.anims.create({
+            key: "NinjaPose",
+            frames: this.anims.generateFrameNumbers("Ninja", {
+              frames: [3]
+            }),
+            frameRate: 10,
+            repeat: -1
+          });
+
+          //ANIMATION BOSS
+          this.anims.create({
+            key: "Boss2Bas",
+            frames: this.anims.generateFrameNumbers("Boss2", {
+              frames: [9, 10, 11]
+            }),
+            frameRate: 10, //nb image par seconde
+            repeat: -1
+          });
+          this.anims.create({
+            key: "Boss2Up",
+            frames: this.anims.generateFrameNumbers("Boss2", {
+              frames: [0, 1, 2]
+            }),
+            frameRate: 10, //nb image par seconde
+            repeat: -1
+          });
+          this.anims.create({
+            key: "Boss2right",
+            frames: this.anims.generateFrameNumbers("Boss2", {
+              frames: [6, 7, 8]
+            }),
+            frameRate: 10, //nb image par seconde
+            repeat: -1
+          });
+          this.anims.create({
+            key: "Boss2left",
+            frames: this.anims.generateFrameNumbers("Boss2", {
+              frames: [3, 4, 5]
+            }),
+            frameRate: 10, //nb image par seconde
+            repeat: -1
+          });
+
+          //ANIMATION DES PIECES
+          this.anims.create({
+            key: "tournecoin",
+            frames: this.anims.generateFrameNumbers("coinsimage", {
+              frames: [3, 4, 5, 6, 5, 4, 3] // pour qu'elles tournent
+            }),
+            frameRate: 10, //nb image par seconde
+            repeat: -1
+          });
+
+          //****************************************************************
+          // redimentionnement du monde avec les dimensions calculées via tiled
+          this.physics.world.setBounds(0, 0, 2244, 4000);
+          this.cameras.main.setBounds(0, 0, 2244, 4000);
+
+          // ancrage de la caméra sur le joueur
+          this.cameras.main.startFollow(player);
+          // On ajoute un zoom pour se focus sur le player
+          this.cameras.main.zoom = 1.25;
+
+          //*****************************************************
+
+          this.allerBasOs();
+          this.allerBasMino();
+          this.allerDroiteGobelin();
+          this.allerDroiteGobelinVert();
+          this.allerGaucheNoir();
+          this.parlerGenie();
+          this.parlerNinja();
+
+          // Toutes les pièces créées tournent
+          coins.children.iterate(function(pieceDuGroupe) {
+            pieceDuGroupe.anims.play("tournecoin", true);
+          });
+
+          //**************************************************************
+          // DEBUGUE DES OBSTACLES
+          // Cette fonction sert à voir les images obstacles
+          /*const debugGraphics = this.add.graphics().setAlpha(0.75);
+
+          obstacle.renderDebug(debugGraphics, {
+                      tileColor: new Phaser.Display.Color(0, 250, 0, 255), // couleur des tuiles snas collision
+                      collidingTileColor: new Phaser.Display.Color(243, 134, 0, 255), // couleur des tuiles en conlision
+                      faceColor: new Phaser.Display.Color(40, 39, 37, 255) // Color of colliding face edges
+                    });*/
+          //****************************************************************
+        } //fin du create
+
+        update() {
+          if (kill == 5) {
+            kill = 0; // on change le paramètre pour ne rentrer qu'une fois dans
+
+            pnjBoss2 = pnj.create(1750, 850, "Boss2"); // on affiche le pnjBoss
+            scoreNinjaText.setText(
+              "Un Boss est entré dans la dernière salle !"
+            ); // on avertit le joueur
+            this.allerHautBoss2(); // Animation du Boss
+          }
+          // on veut eviter les déplacements en diagonale du player
+          player.setVelocityX(0);
+          player.setVelocityY(0);
+          if (cursors.left.isDown) {
+            direction = "left"; // on va a gauche
+            player.body.setVelocityX(-150);
+            player.anims.play(direction, true);
+          } else if (cursors.right.isDown) {
+            direction = "right"; // on va a droite
+            player.body.setVelocityX(150);
+            player.anims.play(direction, true);
+          } else if (cursors.up.isDown) {
+            direction = "up"; // on va en haut
+            player.body.setVelocityY(-150);
+            player.anims.play(direction, true);
+          } else if (cursors.down.isDown) {
+            direction = "down"; // on va en bas
+            player.body.setVelocityY(150);
+            player.anims.play(direction, true);
+          } else {
+            player.setVelocityX(0);
+            player.setVelocityY(0);
+            this.bougepas(direction); // le player reste dans la dernière direction, figé
+          }
+
+          //On vérifie si le joueur n'a pas tenté de tirer avec 'a'
+          if (Phaser.Input.Keyboard.JustDown(BoutonFeu)) {
+            // le joueur tente de tirer
+            if (player.tirerbool == true) {
+              // au début il peut
+              this.tirer(player, direction); // il tire
+              sfire = this.sound.add("sfire", { // on lance le bruitage à chaque tirs du joueur
+                volume: 0.5
+              });
+              sfire.play(); // on lance le bruitage à chaque tirs du joueur
+              player.tirerbool = false; // il ne peut plus (impossible de spam la touche
+              // pour lancer plus de boules de feu)
+              var timedEventbo1 = this.time.addEvent({
+                delay: 1000, // permet un tir toutes les secondes
+                callback: function() {
+                  player.tirerbool = true;
+                },
+                callbackScope: this,
+                loop: false
+              });
+              //Le joueur peut de nouveau tirer
+            }
+          }
+        } // fin du update
+
+        // Fonction pour tirer pour le pnj
+        tirerpnj(pnj, directionpnj) {
+          if (gameover == false) {
+            // Tant que le joueur n'a pas perdu
+            // les pnj peuvent tirer
+            var coefDirxpnj = 0;
+            var coefDirypnj = 0;
+            if (directionpnj == "left") {
+              // si le pnj va a gauche
+              coefDirxpnj = -1;
+              coefDirypnj = 0;
+            }
+            if (directionpnj == "right") {
+              // si le pnj va a droite
+              coefDirxpnj = 1;
+              coefDirypnj = 0;
+            }
+            if (directionpnj == "up") {
+              // si le pnj va en haut
+              coefDirxpnj = 0;
+              coefDirypnj = -1;
+            }
+            if (directionpnj == "down") {
+              // si le pnj va en bas
+              coefDirxpnj = 0;
+              coefDirypnj = 1;
+            }
+            // on crée la balle a coté du joueur
+            var bulletpnj = groupeBulletspnj.create(pnj.x, pnj.y, "bullet2");
+            // parametres physiques de la boule de feu
+            bulletpnj.setCollideWorldBounds(true);
+            bulletpnj.body.allowGravity = false;
+            // vitesse en x et en y
+            bulletpnj.setVelocity(500 * coefDirxpnj, 500 * coefDirypnj);
+          }
+        }
+
+        // Fonction pour tirer pour le player
+        // C'est pareil que tirerpnj
+        tirer(player, direction) {
+          var coefDirx;
+          var coefDiry;
+          if (direction == "left") {
+            coefDirx = -1;
+            coefDiry = 0;
+          }
+          if (direction == "right") {
+            coefDirx = 1;
+            coefDiry = 0;
+          }
+          if (direction == "up") {
+            coefDirx = 0;
+            coefDiry = -1;
+          }
+          if (direction == "down") {
+            coefDirx = 0;
+            coefDiry = 1;
+          }
+          // on crée la balle a coté du joueur
+          var bullet = groupeBullets.create(
+            player.x * 1,
+            player.y * 1,
+            "bullet"
+          );
+          // parametres physiques de la balle.
+          bullet.setCollideWorldBounds(true);
+          bullet.body.allowGravity = false;
+          bullet.setVelocity(400 * coefDirx, 400 * coefDiry); // vitesse en x et en y
+        }
+
+        // Fonction pour eliminer les pnjs aux 3 vies chacun
+        // + le boss qui a 10 vies
+        hit(bullet, pnj) {
+          bullet.destroy(); //la balle est détruite de base
+          if (pnj == pnjOs) {
+            OsVie--; // le pnj perd une vie
+            pnjOs.setTint(0xff0000); // se colore en rouge
+            var timedEventos = this.time.addEvent({
+              delay: 2000,
+              callback: function() {
+                pnjOs.clearTint(); // le pnj reprend sa couleur
+              },
+              callbackScope: this,
+              loop: false
+            });
+            // delai pour revenir sur sa couleur
+            if (OsVie == 0) {
+              pnjOs.destroy(); // le pnj est détruit
+              kill++;
+            }
+          } else if (pnj == pnjNoir) {
+            NoirVie--; // le pnj perd une vie
+            pnjNoir.setTint(0xff0000); // se colore en rouge
+            var timedEventclnoir = this.time.addEvent({
+              delay: 2000,
+              callback: function() {
+                pnjNoir.clearTint(); // le pnj reprend sa couleur
+              },
+              callbackScope: this,
+              loop: false
+            });
+            // delai pour revenir sur sa couleur
+            if (NoirVie == 0) {
+              pnjNoir.destroy();
+              kill++;
+            }
+          } else if (pnj == pnjMinotaure) {
+            MinotaureVie--; // le pnj perd une vie
+            pnjMinotaure.setTint(0xff0000); // se colore en rouge
+            var timedEventclemino = this.time.addEvent({
+              delay: 2000,
+              callback: function() {
+                pnjMinotaure.clearTint(); // le pnj reprend sa couleur
+              },
+              callbackScope: this,
+              loop: false
+            });
+            // delai pour revenir sur sa couleur
+            if (MinotaureVie == 0) {
+              pnjMinotaure.destroy(); // le pnj est détruit
+              kill++;
+            }
+          } else if (pnj == pnjGobelin) {
+            GobelinVie--; // le pnj perd une vie
+            pnjGobelin.setTint(0xff0000); // se colore en rouge
+            var timedEventclengob = this.time.addEvent({
+              delay: 2000,
+              callback: function() {
+                pnjGobelin.clearTint(); // le pnj reprend sa couleur
+              },
+              callbackScope: this,
+              loop: false
+            });
+            // delai pour revenir sur sa couleur
+            if (GobelinVie == 0) {
+              pnjGobelin.destroy(); // le pnj est détruit
+              kill++;
+            }
+          } else if (pnj == pnjGobelinVert) {
+            GobelinVertVie--; // le pnj perd une vie
+            pnjGobelinVert.setTint(0xff0000); // se colore en rouge
+            var timedEventclegobv = this.time.addEvent({
+              delay: 2000,
+              callback: function() {
+                pnjGobelinVert.clearTint(); // le pnj reprend sa couleur
+              },
+              callbackScope: this,
+              loop: false
+            });
+            // delai pour revenir sur sa couleur
+            if (GobelinVertVie == 0) {
+              pnjGobelinVert.destroy(); // le pnj est détruit
+              kill++;
+            }
+          } else if (pnj == pnjBoss2) {
+            vieBoss2--; // le pnj perd une vie
+            pnjBoss2.setTint(0xff0000); // se colore en rouge
+            var timedEventclebos2 = this.time.addEvent({
+              delay: 2000,
+              callback: function() {
+                pnjBoss2.clearTint(); // le pnj reprend sa couleur
+              },
+              callbackScope: this,
+              loop: false
+            });
+            if (vieBoss2 == 0) {
+              pnjBoss2.destroy(); // le pnj est détruit
+              //door1 = this.add.sprite(1500, 1300, "door1"); // changez de place
+              game.scene.start("winend");
+              //on a gagné, on affiche le contenu de winend           
+            }
+          }
+        }
+
+        // boule de feu qui rencontre un mur obstacle
+        hitobstacle(bullet, obstacle) {
+          bullet.destroy();
+        }
+
+        // boule de feu qui rencontre un mur dessusobstacle
+        hitdessusobstacle(bullet, dessusobstacle) {
+          bullet.destroy();
+        }
+
+        // boule de feu qui rencontre un mur dessusobstacle
+        hitdessussol(bullet, dessussol) {
+          bullet.destroy();
+        }
+
+        //Fonction quand le player prend des coups
+        mort(player, bulletpnj) {
+          player.setTint(0xff0000); //se colore en rouge
+          var timedEventpla = this.time.addEvent({
+            delay: 2000,
+            callback: function() {
+              player.clearTint(); // reprend sa couleur de base
+            },
+            callbackScope: this,
+            loop: false
+          });
+          vie--; // la vie décrémente
+          if (vie == 2) {
+            heart3.visible = false; // on enlève de l'affichage
+            // le coeur de droite
+          }
+          if (vie == 1) {
+            heart2.visible = false; // le coeur suivant
+          }
+          if (vie == 0) {
+            heart.visible = false; // plus de coeur
+            scoreText.setText(" GAME OVER ");
+            gameover = true; // le jeu se met en pause
+            this.physics.pause();
+            game.scene.start("game_over");
+            }
+          bulletpnj.destroy(); // bulletpnj se détruit
+        }
+
+        //Fonction quand le player prend des coups
+        // on fait pareil mais quand le player touche un pnj
+        mortparpnj(player, pnj) {
+          if (player.invincible == false) {
+            // s'il n'est pas invincible
+            vie--; // la vie décrémente
+            if (vie == 2) {
+              heart3.visible = false;
+            }
+            if (vie == 1) {
+              heart2.visible = false;
+            }
+            if (vie == 0) {
+              heart.visible = false;
+              scoreText.setText(" GAME OVER ");
+              gameover = true;
+              this.physics.pause();
+              game.scene.start("game_over");
+            }
+            player.setTint(0xff0000); //
+            player.invincible = true;
+            var timedEventplapnj = this.time.addEvent({
+              delay: 2000,
+              callback: function() {
+                player.clearTint();
+                player.invincible = false;
+              },
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+
+        bougepas(direction) {
+          if (direction == "left") {
+            player.anims.play("bougepasleft", true);
+          }
+          if (direction == "right") {
+            player.anims.play("bougepasright", true);
+          }
+          if (direction == "up") {
+            player.anims.play("bougepasup", true);
+          }
+          if (direction == "down") {
+            player.anims.play("bougepasdown", true);
+          }
+        }
+
+        //Fonction qui permet de gagner de la vie
+        manger(player, cakes) {
+          if (vie < 3) {
+            // il peut manger un coeur s'il a moins de 3 vies
+            vie++; // la vie incrémente
+            cakes.destroy(); // le coeur est mangé miam
+          }
+          if (vie == 3) heart3.visible = true; //on fait reapparaitre un coeur
+          if (vie == 2) heart2.visible = true; // idem
+        }
+
+        // Fonction qui permet de ramasser les pièces
+        ramassertresor(player, coins) {
+          coins.disableBody(true, true); // on désactive la pièce ramassée
+          argent++; // on incrémente l'argent
+          bourse.setText(" Phi: " + argent); // on affiche
+        }
+
+        parlerNinja() {
+          pnjNinja.anims.play("NinjaPose", true);
+          scoreNinjaText = this.add.text(pnjNinja.x - 5, pnjNinja.y - 40, "", {
+            fontSize: "15px",
+            fill: "#001"
+          });
+          scoreNinjaText.setText("Traverse le mur de Bois !");
+        }
+        parlerGenie() {
+          pnjGenie.anims.play("GeniePose", true);
+          var scoreGenieText = this.add.text(
+            pnjGenie.x - 5,
+            pnjGenie.y - 40,
+            "",
+            {
+              fontSize: "15px",
+              fill: "#001"
+            }
+          );
+
+          var timedEventall1h = this.time.addEvent({
+            delay: 3000,
+            callback: function() {
+              scoreGenieText.setText("Toi seul peut vaincre le Tac Phi");
+              var timedEventall1h2 = this.time.addEvent({
+                delay: 3000,
+                callback: function() {
+                  scoreGenieText.setText("Les matières se déchainent");
+                },
+                callbackScope: this,
+                loop: false
+              });
+            },
+            callbackScope: this,
+            loop: false
+          });
+        }
+        // Animation Os
+        allerBasOs() {
+          if (pnjOs.active == true) {
+            pnjOs.setVelocityY(140); // soucis ici quand le
+            //pnjOs est tué
+            pnjOs.anims.play("Osbas", true);
+            directionpnj = "down";
+            this.tirerpnj(pnjOs, directionpnj); // tire
+            var timedEventall1h = this.time.addEvent({
+              delay: 4000,
+              callback: this.allerHautOs,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+        allerHautOs() {
+          if (pnjOs.active == true) {
+            pnjOs.setVelocityY(-140);
+            pnjOs.anims.play("Osup", true);
+            directionpnj = "up";
+            this.tirerpnj(pnjOs, directionpnj); // tire
+            var timedEventall1b = this.time.addEvent({
+              delay: 4000,
+              callback: this.allerBasOs,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+
+        allerBasMino() {
+          if (pnjMinotaure.active == true) {
+            pnjMinotaure.setVelocityY(140);
+            pnjMinotaure.anims.play("Minobas", true);
+            directionpnj = "down";
+            this.tirerpnj(pnjMinotaure, directionpnj); // tire
+            var timedEventall1bmino = this.time.addEvent({
+              delay: 800,
+              callback: this.allerDroiteMino,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+        allerDroiteMino() {
+          if (pnjMinotaure.active == true) {
+            pnjMinotaure.setVelocityX(140);
+            pnjMinotaure.anims.play("Minoright", true);
+            directionpnj = "right";
+            this.tirerpnj(pnjMinotaure, directionpnj); // tire
+            var timedEventall1bmino3 = this.time.addEvent({
+              delay: 4000,
+              callback: this.allerHautMino,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+        allerHautMino() {
+          if (pnjMinotaure.active == true) {
+            pnjMinotaure.setVelocityY(-140);
+            pnjMinotaure.anims.play("Minoup", true);
+            directionpnj = "up";
+            this.tirerpnj(pnjMinotaure, directionpnj); // tire
+            var timedEventall1bmino2 = this.time.addEvent({
+              delay: 800,
+              callback: this.allerGaucheMino,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+        allerGaucheMino() {
+          if (pnjMinotaure.active == true) {
+            pnjMinotaure.setVelocityX(-140);
+            pnjMinotaure.anims.play("Minoleft", true);
+            directionpnj = "left";
+            this.tirerpnj(pnjMinotaure, directionpnj); // tire
+            var timedEventall1bmino1 = this.time.addEvent({
+              delay: 4000,
+              callback: this.allerBasMino,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+
+        allerGaucheGobelinVert() {
+          if (pnjGobelinVert.active == true) {
+            pnjGobelinVert.setVelocityX(-140);
+            pnjGobelinVert.anims.play("GVleft", true);
+            directionpnj = "left";
+            this.tirerpnj(pnjGobelinVert, directionpnj); // tire
+            var timedEventallgv1 = this.time.addEvent({
+              delay: 3000,
+              callback: this.allerDroiteGobelinVert,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+        allerDroiteGobelinVert() {
+          if (pnjGobelinVert.active == true) {
+            pnjGobelinVert.setVelocityX(140);
+            pnjGobelinVert.anims.play("GVright", true);
+            directionpnj = "right";
+            this.tirerpnj(pnjGobelinVert, directionpnj); // tire
+            var timedEventallgv2 = this.time.addEvent({
+              delay: 3000,
+              callback: this.allerGaucheGobelinVert,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+
+        allerGaucheGobelin() {
+          if (pnjGobelin.active == true) {
+            pnjGobelin.setVelocityX(-140);
+            pnjGobelin.anims.play("Gleft", true);
+            directionpnj = "left";
+            this.tirerpnj(pnjGobelin, directionpnj); // tire
+            var timedEventallg1 = this.time.addEvent({
+              delay: 2000,
+              callback: this.allerDroiteGobelin,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+        allerDroiteGobelin() {
+          if (pnjGobelin.active == true) {
+            pnjGobelin.setVelocityX(140);
+            pnjGobelin.anims.play("Gright", true);
+            directionpnj = "right";
+            this.tirerpnj(pnjGobelin, directionpnj); // tire
+            var timedEventallg2 = this.time.addEvent({
+              delay: 2000,
+              callback: this.allerGaucheGobelin,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+
+        allerGaucheNoir() {
+          if (pnjNoir.active == true) {
+            pnjNoir.setVelocityX(-140);
+            pnjNoir.anims.play("Noirleft", true);
+            directionpnj = "left";
+            this.tirerpnj(pnjNoir, directionpnj); // tire
+            var timedEventanoir1 = this.time.addEvent({
+              delay: 4000,
+              callback: this.allerDroiteNoir,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+        allerDroiteNoir() {
+          if (pnjNoir.active == true) {
+            pnjNoir.setVelocityX(140);
+            pnjNoir.anims.play("Noirright", true);
+            directionpnj = "right";
+            this.tirerpnj(pnjNoir, directionpnj); // tire
+            var timedEventnoir2 = this.time.addEvent({
+              delay: 4000,
+              callback: this.allerGaucheNoir,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+
+        //ANIMATION BOSS 2
+        allerBasBoss2() {
+          if (pnjBoss2.active == true) {
+            pnjBoss2.setVelocityY(-120);
+            pnjBoss2.anims.play("Boss2Bas", true);
+            directionpnj = "down";
+            this.tirerpnj(pnjBoss2, directionpnj); // tire
+            directionpnj = "up";
+            this.tirerpnj(pnjBoss2, directionpnj); // tire
+            directionpnj = "left";
+            this.tirerpnj(pnjBoss2, directionpnj); // tire
+            directionpnj = "right";
+            this.tirerpnj(pnjBoss2, directionpnj); // tire
+            var timedEventboss21 = this.time.addEvent({
+              delay: 2000,
+              callback: this.allerDroiteBoss2,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+        allerDroiteBoss2() {
+          if (pnjBoss2.active == true) {
+            pnjBoss2.setVelocityX(120);
+            pnjBoss2.anims.play("Boss2right", true);
+            // Le boss est plus dur il tire dans 4 directions différentes
+            directionpnj = "down";
+            this.tirerpnj(pnjBoss2, directionpnj); // tire
+            directionpnj = "up";
+            this.tirerpnj(pnjBoss2, directionpnj); // tire
+            directionpnj = "left";
+            this.tirerpnj(pnjBoss2, directionpnj); // tire
+            directionpnj = "right";
+            this.tirerpnj(pnjBoss2, directionpnj); // tire
+            var timedEventboss22 = this.time.addEvent({
+              delay: 300,
+              callback: this.allerHautBoss2,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+        allerHautBoss2() {
+          if (pnjBoss2.active == true) {
+            pnjBoss2.setVelocityY(120);
+            pnjBoss2.anims.play("Boss2Up", true);
+            // Le boss est plus dur il tire dans 4 directions différentes
+            directionpnj = "down";
+            this.tirerpnj(pnjBoss2, directionpnj); // tire
+            directionpnj = "up";
+            this.tirerpnj(pnjBoss2, directionpnj); // tire
+            directionpnj = "left";
+            this.tirerpnj(pnjBoss2, directionpnj); // tire
+            directionpnj = "right";
+            this.tirerpnj(pnjBoss2, directionpnj); // tire
+            var timedEventboss23 = this.time.addEvent({
+              delay: 2000,
+              callback: this.allerGaucheBoss2,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+        allerGaucheBoss2() {
+          if (pnjBoss2.active == true) {
+            pnjBoss2.setVelocityX(-120);
+            pnjBoss2.anims.play("Boss2left", true);
+            directionpnj = "down";
+            this.tirerpnj(pnjBoss2, directionpnj); // tire
+            directionpnj = "up";
+            this.tirerpnj(pnjBoss2, directionpnj); // tire
+            directionpnj = "left";
+            this.tirerpnj(pnjBoss2, directionpnj); // tire
+            directionpnj = "right";
+            this.tirerpnj(pnjBoss2, directionpnj); // tire
+            var timedEventboss24 = this.time.addEvent({
+              delay: 300,
+              callback: this.allerBasBoss2,
+              callbackScope: this,
+              loop: false
+            });
+          }
+        }
+      
+      } // fin du niveau 2
+
+      //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+      //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+      class menu extends Phaser.Scene {
+        constructor() {
+          super({
+            key: "menu"
+          });
+        }
+
+        preload() {
+          // On initialise les musiques et les images
+          this.load.audio("smenu", "Sound/menu.ogg");
+          this.load.image("menuprin", "ImagesG/menu.png");
+          this.load.image("boustart", "Bouton/Bouton_start.png");
+          this.load.image("boption", "Bouton/Bouton_option.png");
+        }
+        create() {
+          smenu = this.sound.add("smenu", {
+            loop: true,
+            volume: 0.1
+          });
+          smenu.play(); // on lance la musique
+          this.add.image(700, 350, "menuprin").setDepth(0);
+          //Création des boutons
+          boustart = this.add.image(650, 380, "boustart").setDepth(1);
+          boption = this.add.image(750, 480, "boption").setDepth(1);
+
+          boustart.setInteractive(); //on rend le bouton interactif
+          boption.setInteractive(); //on rend le bouton interactif
+          // cas où la souris clique sur le bouton
+          // soucis ici
+          boustart.on("pointerup", () => {
+            smenu.stop(); // on stop la musique
+            this.scene.start("niveau1");
+
+            console.log("niveau1 clique"); // la scène commence dès le clic sur le bouton
+          });
+
+          boption.on("pointerup", () => {
+            smenu.stop(); // on stop la musique
+            this.scene.start("Moption");
+
+            console.log("moption clique"); // la scène commence dès le clic sur le bouton
+          });
+          count = 0;
+          this.cameras.main.setBackgroundColor("#111");
+        }
+
+        update() {}
+      } // fin du menu
+
+      //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+      //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+      class Moption extends Phaser.Scene {
+        constructor() {
+          super({
+            key: "Moption"
+          });
+        }
+
+        preload() {
+          // On initialise les musiques et les images
+          this.load.audio("soption", "Sound/Option zelda.ogg");
+          this.load.image("menuoption", "ImagesG/MenuOption.png");
+          this.load.image("boustart1", "Bouton/Bouton_start.png");
+          this.load.image("son_on1", "Bouton/SonOn.png");
+          this.load.image("son_off1", "Bouton/SonOff.png");
+        }
+        create() {
+          soption = this.sound.add("soption", {
+            Loop: true,
+            volume: 0.1
+          });
+          soption.play(); // on lance la musique
+          this.cameras.main.setBackgroundColor("#111");
+          this.add.image(700, 350, "menuoption").setDepth(0);
+          boustart = this.add.image(650, 95, "boustart1").setDepth(1);
+          son_on = this.add.image(900, 500, "son_on1").setDepth(1);
+          son_off = this.add.image(1000, 500, "son_off1").setDepth(1);
+
+          boustart.setInteractive(); //on rend le bouton interactif
+          son_on.setInteractive();
+          son_off.setInteractive();
+          // cas où la souris clique sur le bouton
+
+          boustart.on("pointerup", () => {
+            soption.stop(); // on stop la musique
+            this.scene.start("niveau1"); // on commence la scène suivante
+          });
+
+          son_on.on("pointerup", () => {
+            soption.play(); // on lance la musique
+          });
+
+          son_off.on("pointerup", () => {
+            soption.stop(); // on stop la musique
+          });
+        }
+        update() {}
+      } // fin de l'option
+
+      //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+      //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+      //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+      //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+      class game_over extends Phaser.Scene {
+        constructor() {
+          super({
+            key: "game_over"
+          });
+        }
+
+        preload() {
+          //On initialise la musique et les images
+          this.load.audio("sgame_over", "Sound/game over.ogg"); 
+          this.load.image("overprin", "ImagesG/gameover.png");
+          this.load.image("bover", "Bouton/Bouton_quitter.png");
+        }
+        create() {
+          sover = this.sound.add("sgame_over", {
+            volume: 0.5
+          });
+          // On stop le son afin de ne pas avoir de superpositions sonores
+          smain.stop(); 
+          // On lance la musique
+          sover.play();
+          this.cameras.main.setBackgroundColor("#111");
+
+          this.add.image(700, 350, "overprin").setDepth(0);
+          bover = this.add.image(725, 525, "bover").setDepth(1);
+
+          bover.setInteractive();
+
+          bover.on("pointerup", () => {
+            //on veut fermer la fenêtre
+            window.close();
+          });
+        }
+        update() {}
+      } // fin du game over
+
+      //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+      class winend extends Phaser.Scene {
+        constructor() {
+          super({
+            key: "winend"
+          });
+        }
+
+        preload() {
+          this.load.audio("svictory", "Sound/Victoire son.ogg");
+          this.load.image("menuwin", "ImagesG/menu_final.png");
+        }
+        create() {
+          svictory = this.sound.add("svictory", { volume: 0.1 });
+
+          svictory.play();
+          this.cameras.main.setBackgroundColor("#111");
+          this.add.image(700, 350, "menuwin");
+        }
+        update() {}
+      } // fin de win
+    </script>
+  </body>
+</html>
